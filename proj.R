@@ -1,7 +1,7 @@
 library(dplyr)
 library(ggplot2)
 theme(plot.title = element_text(hjust = 0.5))
-library(xtable)
+# library(xtable)
 
 # 1, download file, read and then delete it
 setwd("C:\\Users\\vivek\\Documents\\Data Science\\Coursera\\05 - Reproducible Research\\Lecture 02")
