@@ -2,7 +2,9 @@
 title: "Course Project 1 - Reproducible Research"
 author: "Vivek Joshi"
 date: "March 31, 2017"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r, echo = FALSE, message = FALSE, warning = FALSE}
@@ -43,7 +45,7 @@ ggplot(dplyr_tot, aes(daily)) +
 
 Average number of steps taken per day is : `r round(mean(dplyr_tot$daily, na.rm = TRUE), digits = 2)`
 
-Median number of steps taken per day is : `r round(median(dplyr_tot$daily, na.rm = TRUE), digits = 2)`
+Median number of steps taken per day is : `r median(dplyr_tot$daily, na.rm = TRUE)`
 
 ## Time series plot of the average number of steps taken
 ```{r}
