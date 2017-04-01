@@ -1,0 +1,119 @@
+---
+title: "Course Project 1 - Reproducible Research"
+author: "Vivek Joshi"
+date: "March 31, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This is the project for peer review in Reproducible Research on Coursera. Data is available from https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip and the file is downloaded into a temporary directory, read and then deleted. The questions are answered based on the available data.
+
+## Loading/Reading in the Data
+
+```{r}
+setwd("C:\\Users\\vivek\\Documents\\Data Science\\Coursera\\05 - Reproducible Research\\Lecture 02")
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", "project.zip")
+df <- read.csv(unz("project.zip", "activity.csv"))
+file.remove("project.zip")
+```
+
+## Histogram of the total number of steps taken per day
+
+```{r, x1, echo=TRUE, message=FALSE}
+dplyr_tot <- df %>%
+  group_by(date) %>%
+  summarise(daily = sum(steps, na.rm = TRUE))
+ggplot(dplyr_tot, aes(daily)) + 
+  geom_histogram(binwidth = 500, fill="orange", colour="black") + 
+  xlab("Number of Steps Per Day") + 
+  ylab("Frequency") +
+  ggtitle("Frequency count of Steps per day with NA removed") + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Average number of steps taken per day is : `r round(mean(dplyr_tot$daily, na.rm = TRUE), digits = 2)`
+
+Median number of steps taken per day is : `r median(dplyr_tot$daily, na.rm = TRUE)`
+
+## Time series plot of the average number of steps taken
+```{r}
+df.avg.steps <- df %>%
+  group_by(interval) %>%
+  summarise(avg.steps = mean(steps, na.rm = TRUE))
+
+ggplot(df.avg.steps, aes(interval, avg.steps)) + geom_line() +
+  xlab("Interval") + ylab("Avg. Daily Steps") +
+  ggtitle("Average Daily Steps vs. Daily Time Interval") + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Five minute interval that on the average has the max number of steps
+
+Five minute interval with the max number of steps is : `r  round(df.avg.steps$interval[which.max(df.avg.steps$avg.steps)], 2)`
+
+## Code to describe imputation strategy
+
+The data above has a wide distribution, hence I have chosen to use the median value for the same interval for interpolation. Another thing that could be done is to impute on the basis of time interval and whether it is a weekend or weekday, but I have not performed that analysis. To check whether the median for imputation makes sense, we can check with the summary command
+
+```{r}
+summary(df$steps)
+```
+Moving on for the imputation yields
+
+```{r}
+df.nona <- df # copy the dataframe, will clean and use...
+where.nas <- is.na(df.nona$steps)
+# compute median over interval, since data has "wide" distribution.
+impute.time <- tapply(df.nona$steps, df.nona$interval, median, na.rm = TRUE, simplify = TRUE)
+df.nona$steps[where.nas] <- impute.time[as.character(df.nona$interval[where.nas])]
+# check for no NAs
+sum(is.na(df.nona))
+```
+
+## Histogram of the total number of steps taken each day after missing values are imputed
+``` {r}
+dplyr.nona.tot <- df.nona %>%
+  group_by(date) %>%
+  summarise(daily = sum(steps, na.rm = TRUE))
+
+# can use tapply too
+# total.steps <- tapply(df$steps, df$date, FUN=sum, na.rm=TRUE, simplify = TRUE)
+ggplot(dplyr.nona.tot, aes(daily)) + 
+  geom_histogram(binwidth = 500, fill="orange", colour="black") + 
+  xlab("Number of Steps Per Day") + 
+  ylab("Frequency") +
+  ggtitle("Frequency count of Steps per day with NA imputed") + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Panel plot comparing average number of steps taken per 5-minute interval across weekdays and weekend
+```{r}
+# convert date to Date type so can use weekday
+df.nona$date <- as.Date(df.nona$date)
+df.nona <- df.nona %>%
+  mutate(daytype = ifelse(weekdays(df.nona$date) %in% c("Saturday","Sunday"), "Weekend", "Weekday"))
+  
+
+df.nona <- df.nona %>%
+  group_by(interval) %>%
+  mutate(avg.steps = mean(steps, na.rm = TRUE))
+
+ggplot(df.nona, aes(x =interval , y=steps, color=daytype)) +
+  geom_line() +
+  labs(title = "Ave Daily Steps (type of day)", x = "Interval", y = "Total Number of Steps") +
+  facet_wrap(~ daytype, ncol = 1, nrow=2) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
